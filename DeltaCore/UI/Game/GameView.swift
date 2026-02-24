@@ -98,7 +98,7 @@ public class GameView: UIView
             
             // Keep old GL objects alive long enough to release them with the previous context active.
             let previousEAGLContext = self.glkView.context
-            var previousOpenGLESContext: CIContext? = self.openGLESContext
+            let previousOpenGLESContext = self.openGLESContext
             
             // For some reason, if we don't explicitly set current EAGLContext to nil, assigning
             // to self.glkView may crash if we've already rendered to a game view.
@@ -110,11 +110,11 @@ public class GameView: UIView
                 self.openGLESContext = self.makeOpenGLESContext()
             }
             
-            if let previousEAGLContext
-            {
-                EAGLContext.setCurrent(previousEAGLContext)
-            }
-            previousOpenGLESContext = nil
+            EAGLContext.setCurrent(previousEAGLContext)
+            
+            // Keep old CIContext alive until the previous GL context is active.
+            withExtendedLifetime(previousOpenGLESContext) {}
+            
             EAGLContext.setCurrent(nil)
             
             DispatchQueue.main.async {
