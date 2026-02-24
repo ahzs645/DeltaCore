@@ -93,6 +93,12 @@ public class GameView: UIView
             defer { os_unfair_lock_unlock(&self.lock) }
             
             self.didLayoutSubviews = false
+            self.didRenderInitialFrame = false
+            self.isRenderingInitialFrame = false
+            
+            // Keep old GL objects alive long enough to release them with the previous context active.
+            let previousEAGLContext = self.glkView.context
+            var previousOpenGLESContext: CIContext? = self.openGLESContext
             
             // For some reason, if we don't explicitly set current EAGLContext to nil, assigning
             // to self.glkView may crash if we've already rendered to a game view.
@@ -104,13 +110,20 @@ public class GameView: UIView
                 self.openGLESContext = self.makeOpenGLESContext()
             }
             
+            if let previousEAGLContext
+            {
+                EAGLContext.setCurrent(previousEAGLContext)
+            }
+            previousOpenGLESContext = nil
+            EAGLContext.setCurrent(nil)
+            
             DispatchQueue.main.async {
                 // layoutSubviews() must be called after setting self.eaglContext before we can display anything.
                 self.setNeedsLayout()
             }
         }
     }
-    private lazy var openGLESContext: CIContext = self.makeOpenGLESContext()
+    private var openGLESContext: CIContext!
     private lazy var metalContext: CIContext = self.makeMetalContext()
         
     private let glkView: GLKView
@@ -155,6 +168,8 @@ public class GameView: UIView
     
     private func initialize()
     {        
+        self.openGLESContext = self.makeOpenGLESContext()
+        
         self.glkView.frame = self.bounds
         self.glkView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         self.glkView.delegate = self.glkViewDelegate

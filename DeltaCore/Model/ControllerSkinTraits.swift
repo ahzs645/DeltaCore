@@ -8,9 +8,23 @@
 
 import UIKit
 
+private extension UISceneSession.Role
+{
+    static var deltaWindowExternalDisplay: UISceneSession.Role {
+        if #available(iOS 16, *)
+        {
+            return .windowExternalDisplayNonInteractive
+        }
+        else
+        {
+            return .windowExternalDisplay
+        }
+    }
+}
+
 extension ControllerSkin
 {
-    public enum Device: String, CaseIterable
+    public enum Device: String, CaseIterable, Sendable
     {
         // Naming conventions? I treat the "P" as the capital letter, so since it's a value (not a type) I've opted to lowercase it
         case iphone
@@ -18,27 +32,27 @@ extension ControllerSkin
         case tv
     }
 
-    public enum DisplayType: String, CaseIterable
+    public enum DisplayType: String, CaseIterable, Sendable
     {
         case standard
         case edgeToEdge
         case splitView
     }
 
-    public enum Orientation: String, CaseIterable
+    public enum Orientation: String, CaseIterable, Sendable
     {
         case portrait
         case landscape
     }
     
-    public enum Size: String
+    public enum Size: String, Sendable
     {
         case small
         case medium
         case large
     }
     
-    public struct Traits: Hashable, CustomStringConvertible
+    public struct Traits: Hashable, CustomStringConvertible, Sendable
     {
         public var device: Device
         public var displayType: DisplayType
@@ -62,7 +76,7 @@ extension ControllerSkin
             let displayType: DisplayType
             let orientation: Orientation
             
-            if let scene = window.windowScene, scene.session.role == .windowExternalDisplay
+            if let scene = window.windowScene, scene.session.role == .deltaWindowExternalDisplay, scene.screen != UIScreen.main
             {
                 //TODO: Support .portrait TV skins
                 device = .tv

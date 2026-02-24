@@ -294,6 +294,12 @@ public class ControllerView: UIView, GameController
         for (_, touchView) in self.touchViews
         {
             guard touchView.frame.contains(point) else { continue }
+            
+            if self.controllerSkin?.gameType.rawValue == "com.rileytestut.delta.game.ds"
+            {
+                // DS touch input must win hit-testing to ensure the stylus screen remains interactive.
+                return touchView
+            }
 
             if let inputs = self.buttonsView.inputs(at: point)
             {
