@@ -110,12 +110,12 @@ public class GameView: UIView
                 self.openGLESContext = self.makeOpenGLESContext()
             }
             
-            EAGLContext.setCurrent(previousEAGLContext)
-            
-            // Keep old CIContext alive until the previous GL context is active.
-            withExtendedLifetime(previousOpenGLESContext) {}
-            
-            EAGLContext.setCurrent(nil)
+            // Keep the previous GL objects alive until the old CIContext finishes tearing down.
+            withExtendedLifetime(previousEAGLContext) {
+                EAGLContext.setCurrent(previousEAGLContext)
+                withExtendedLifetime(previousOpenGLESContext) {}
+                EAGLContext.setCurrent(nil)
+            }
             
             DispatchQueue.main.async {
                 // layoutSubviews() must be called after setting self.eaglContext before we can display anything.
