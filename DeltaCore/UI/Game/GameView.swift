@@ -36,6 +36,10 @@ public enum SamplerMode
 
 public class GameView: UIView
 {
+    // Core Image's GL teardown is unstable when a reused game view swaps emulators.
+    // Retaining previous GL contexts for the process lifetime is cheaper than crashing.
+    private static var retainedOpenGLESContexts = [(EAGLContext, CIContext)]()
+    
     public var isEnabled: Bool = true
     
     // Set to limit rendering to just a specific VideoManager.
@@ -104,17 +108,26 @@ public class GameView: UIView
             // to self.glkView may crash if we've already rendered to a game view.
             EAGLContext.setCurrent(nil)
             
+            // Tear down the current drawable before swapping contexts. Reused game views
+            // can otherwise crash inside Core Image when the previous CIContext deallocates.
+            EAGLContext.setCurrent(previousEAGLContext)
+            self.glkView.deleteDrawable()
+            EAGLContext.setCurrent(nil)
+            
             if let eaglContext
             {
                 self.glkView.context = EAGLContext(api: eaglContext.api, sharegroup: eaglContext.sharegroup)!
                 self.openGLESContext = self.makeOpenGLESContext()
             }
+            else
+            {
+                self.openGLESContext = nil
+            }
             
-            // Keep the previous GL objects alive until the old CIContext finishes tearing down.
-            withExtendedLifetime(previousEAGLContext) {
-                EAGLContext.setCurrent(previousEAGLContext)
-                withExtendedLifetime(previousOpenGLESContext) {}
-                EAGLContext.setCurrent(nil)
+            if let previousOpenGLESContext, previousOpenGLESContext !== self.openGLESContext
+            {
+                previousOpenGLESContext.clearCaches()
+                Self.retainedOpenGLESContexts.append((previousEAGLContext, previousOpenGLESContext))
             }
             
             DispatchQueue.main.async {

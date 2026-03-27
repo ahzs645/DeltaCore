@@ -77,7 +77,11 @@ open class GameViewController: UIViewController, GameControllerReceiver
     {
         didSet
         {
-            oldValue?.stop()
+            if let oldValue
+            {
+                self.detach(from: oldValue)
+                oldValue.stop()
+            }
             
             self.emulatorCore?.updateHandler = { [weak self] core in
                 guard let strongSelf = self else { return }
@@ -581,6 +585,18 @@ private extension GameViewController
 // MARK: - Preparation -
 private extension GameViewController
 {
+    func detach(from emulatorCore: EmulatorCore)
+    {
+        let activeGameViews = self.gameViews + (self.controllerView?.gameViews ?? [])
+        for gameView in activeGameViews
+        {
+            emulatorCore.remove(gameView)
+        }
+        
+        self.controllerView?.removeReceiver(self)
+        self.controllerView?.removeReceiver(emulatorCore)
+    }
+    
     func prepareForGame()
     {
         guard
